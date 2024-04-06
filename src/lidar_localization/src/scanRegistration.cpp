@@ -444,7 +444,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg){
     pubSurfPointsLessFlat.publish(surfPointsLessFlat2);
         
 
-        // 将每条scan的线扫发布出去
+    // 将每条scan的线扫发布出去
     if(PUB_EACH_LINE)
     {
         for(int i = 0; i< N_SCANS; i++)
@@ -459,10 +459,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg){
 
     printf("scan registration time %f ms *************\n", t_whole.toc());
     if(t_whole.toc() > 100)
-        ROS_WARN("scan registration process over 100ms");    
-        
-
-    
+        ROS_WARN("scan registration process over 100ms");      
 }
 
 int main(int argc,char** argv)

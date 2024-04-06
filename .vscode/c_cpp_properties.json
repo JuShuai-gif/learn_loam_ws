@@ -10,7 +10,9 @@
                 "/usr/include/**",
                 "${workspaceFolder}/src/lidar_localization/include/**",
                 "/usr/include/pcl-1.10/**",
-                "${workspaceFolder}/src/lidar_localization/include"
+                "${workspaceFolder}/src/lidar_localization/include",
+                "/usr/include/pcl-1.10",
+                "/opt/ros/noetic/include"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
