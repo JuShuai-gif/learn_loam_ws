@@ -23,6 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(Ceres REQUIRED)
 
 
 catkin_package(
@@ -34,24 +36,28 @@ CATKIN_DEPENDS roscpp rospy geometry_msgs nav_msgs std_msgs
 )
 
 include_directories(
- include
- ${catkin_INCLUDE_DIRS}
- ${PCL_INCLUDE_DIRS}
-)
+  include
+	${catkin_INCLUDE_DIRS} 
+	${PCL_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS})
 
 
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(${PROJECT_NAME}_node src/scanRegistration.cpp)
+add_executable(scanRegistration src/scanRegistration.cpp)
+target_link_libraries(scanRegistration
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 
+add_executable(laserOdometry src/laserOdometry.cpp)
+target_link_libraries(laserOdometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
- target_link_libraries(${PROJECT_NAME}_node
-   ${catkin_LIBRARIES}
-   ${PCL_LIBRARIES}
- )
+
 

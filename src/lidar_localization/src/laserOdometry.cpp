@@ -141,6 +141,7 @@ void laserCloudLessFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surfPoint
 //receive all point cloud
 void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudFullRes2)
 {
+    std::cout << "调用laserCloudFullResHandler" << std::endl;
     mBuf.lock();
     fullPointsBuf.push(laserCloudFullRes2);
     mBuf.unlock();
@@ -185,6 +186,7 @@ int main(int argc,char** argv)
 
     while (ros::ok())
     {
+        std::cout << "hhhhhhh" << std::endl;
         ros::spinOnce();
 
         if (!cornerSharpBuf.empty() && !cornerLessSharpBuf.empty() &&
@@ -493,15 +495,17 @@ int main(int argc,char** argv)
             }
             TicToc t_pub;
 
-            // publish odometry
+            // 发布里程计
             nav_msgs::Odometry laserOdometry;
-            laserOdometry.header.frame_id = "/camera_init";
+            laserOdometry.header.frame_id = "/map";
             laserOdometry.child_frame_id = "/laser_odom";
             laserOdometry.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
+            // 旋转
             laserOdometry.pose.pose.orientation.x = q_w_curr.x();
             laserOdometry.pose.pose.orientation.y = q_w_curr.y();
             laserOdometry.pose.pose.orientation.z = q_w_curr.z();
             laserOdometry.pose.pose.orientation.w = q_w_curr.w();
+            // 位移
             laserOdometry.pose.pose.position.x = t_w_curr.x();
             laserOdometry.pose.pose.position.y = t_w_curr.y();
             laserOdometry.pose.pose.position.z = t_w_curr.z();
@@ -512,7 +516,7 @@ int main(int argc,char** argv)
             laserPose.pose = laserOdometry.pose.pose;
             laserPath.header.stamp = laserOdometry.header.stamp;
             laserPath.poses.push_back(laserPose);
-            laserPath.header.frame_id = "/camera_init";
+            laserPath.header.frame_id = "/map";
             pubLaserPath.publish(laserPath);
 
 
@@ -536,7 +540,7 @@ int main(int argc,char** argv)
                     TransformToEnd(&laserCloudFullRes->points[i], &laserCloudFullRes->points[i]);
                 }
             }
-
+            // 记录当前角点 面点的tmpPointCloud
             pcl::PointCloud<PointType>::Ptr laserCloudTemp = cornerPointsLessSharp;
             cornerPointsLessSharp = laserCloudCornerLast;
             laserCloudCornerLast = laserCloudTemp;
@@ -544,12 +548,13 @@ int main(int argc,char** argv)
             laserCloudTemp = surfPointsLessFlat;
             surfPointsLessFlat = laserCloudSurfLast;
             laserCloudSurfLast = laserCloudTemp;
-
+            
+            // 记录下点的大小
             laserCloudCornerLastNum = laserCloudCornerLast->points.size();
             laserCloudSurfLastNum = laserCloudSurfLast->points.size();
 
             // std::cout << "the size of corner last is " << laserCloudCornerLastNum << ", and the size of surf last is " << laserCloudSurfLastNum << '\n';
-
+            // 记录下上一帧的kdtree
             kdtreeCornerLast->setInputCloud(laserCloudCornerLast);// 更新kdtree的点云 
             kdtreeSurfLast->setInputCloud(laserCloudSurfLast);
 
@@ -560,20 +565,20 @@ int main(int argc,char** argv)
                 sensor_msgs::PointCloud2 laserCloudCornerLast2;
                 pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
                 laserCloudCornerLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudCornerLast2.header.frame_id = "/camera";
-                pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
+                laserCloudCornerLast2.header.frame_id = "/map";
+                //pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
                 sensor_msgs::PointCloud2 laserCloudSurfLast2;
                 pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
                 laserCloudSurfLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudSurfLast2.header.frame_id = "/camera";
-                pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
+                laserCloudSurfLast2.header.frame_id = "/map";
+                //pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
 
                 sensor_msgs::PointCloud2 laserCloudFullRes3;
                 pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
                 laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudFullRes3.header.frame_id = "/camera";
-                pubLaserCloudFullRes.publish(laserCloudFullRes3);
+                laserCloudFullRes3.header.frame_id = "/map";
+                //pubLaserCloudFullRes.publish(laserCloudFullRes3);
             }
             printf("publication time %f ms \n", t_pub.toc());
             printf("whole laserOdometry time %f ms \n \n", t_whole.toc());
