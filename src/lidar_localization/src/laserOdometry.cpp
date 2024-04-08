@@ -112,6 +112,7 @@ void TransformToEnd(PointType const*const pi,PointType*const po)
 
 void laserCloudSharpHandler(const sensor_msgs::PointCloud2ConstPtr& cornerPointsSharp2)
 {
+    //std::cout << "1111111111111111111111    :  "<< (*cornerPointsSharp2).data.size()<<std::endl;
     mBuf.lock();
     cornerSharpBuf.push(cornerPointsSharp2);
     mBuf.unlock();
@@ -141,14 +142,11 @@ void laserCloudLessFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surfPoint
 //receive all point cloud
 void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudFullRes2)
 {
-    std::cout << "调用laserCloudFullResHandler" << std::endl;
+    //std::cout << "调用laserCloudFullResHandler" << std::endl;
     mBuf.lock();
     fullPointsBuf.push(laserCloudFullRes2);
     mBuf.unlock();
 }
-
-
-
 
 int main(int argc,char** argv)
 {   
@@ -186,12 +184,18 @@ int main(int argc,char** argv)
 
     while (ros::ok())
     {
-        std::cout << "hhhhhhh" << std::endl;
+        //std::cout << "hhhhhhh" << std::endl;
         ros::spinOnce();
-
+        // std::cout << "cornerSharpBuf.size() " << cornerSharpBuf.size() << std::endl;
+        // std::cout << "cornerLessSharpBuf.size() " << cornerLessSharpBuf.size() << std::endl;
+        // std::cout << "surfFlatBuf.size() " << surfFlatBuf.size() << std::endl;
+        // std::cout << "surfLessFlatBuf.size() " << surfLessFlatBuf.size() << std::endl;
+        // std::cout << "fullPointsBuf.size() " << fullPointsBuf.size() << std::endl;
         if (!cornerSharpBuf.empty() && !cornerLessSharpBuf.empty() &&
-                !surfFlatBuf.empty() && !surfLessFlatBuf.empty() && fullPointsBuf.empty())
+                !surfFlatBuf.empty() && !surfLessFlatBuf.empty() && !fullPointsBuf.empty())
         {
+
+            std::cout << "message is not null" << std::endl;
             timeCornerPointsSharp = cornerSharpBuf.front()->header.stamp.toSec();
             timeCornerPointsLessSharp = cornerLessSharpBuf.front()->header.stamp.toSec();
             timeSurfPointsFlat = surfFlatBuf.front()->header.stamp.toSec();
@@ -244,7 +248,7 @@ int main(int argc,char** argv)
                 int cornerPointsSharpNum = cornerPointsSharp->points.size();
                 // 极小平面点的数量
                 int surfPointsFlatNum = surfPointsFlat->points.size();
-
+                //std::cout << "cornerPointsSharpNum: " << cornerPointsSharpNum << "surfPointsFlatNum: "<<surfPointsFlatNum<< std::endl;
                 TicToc t_opt;
                 // 点到线以及点到面的非线性优化，迭代2ci,选择当前优化的位姿的特征点匹配，并优化位姿(4次迭代)
                 // 然后重新选择特征点匹配并优化
@@ -283,6 +287,7 @@ int main(int argc,char** argv)
                         if (pointSearchSqDis[0] < DISTANCE_SQ_THRESHOLD)
                         {
                             closestPointInd = pointSearchInd[0];
+                            //std::cout << "laserCloudCornerLast: " << laserCloudCornerLast->points.size() << std::endl;
                             int closestPointScanID = int(laserCloudCornerLast->points[closestPointInd].intensity);
 
                             double minPointSqDis2 = DISTANCE_SQ_THRESHOLD;
@@ -470,7 +475,7 @@ int main(int argc,char** argv)
                         }
                     }
                     
-                    std::cout << "data association time " << t_data.toc() << std::endl;
+                    //std::cout << "data association time " << t_data.toc() << std::endl;
 
                     if ((corner_correspondence + plane_correspondence) < 10)
                     {
@@ -485,9 +490,9 @@ int main(int argc,char** argv)
                     ceres::Solver::Summary summary;
                     // 基于构建的所有残差项，求解最优的当前帧位姿与上一帧位姿的位姿增量：para_q和para_t
                     ceres::Solve(options, &problem, &summary);
-                    std::cout << "solver time " << t_solver.toc() << std::endl;
+                    //std::cout << "solver time " << t_solver.toc() << std::endl;
                 }
-                std::cout << "optimization twice time " << t_opt.toc() << std::endl;
+                //std::cout << "optimization twice time " << t_opt.toc() << std::endl;
                 // 用最新计算出的位姿增量，更新上一帧的位姿，得到当前帧的位姿，注意这里说的位姿都指的是世界坐标系下的位姿
                 t_w_curr = t_w_curr + q_w_curr * t_last_curr;
                 q_w_curr = q_w_curr * q_last_curr;
@@ -497,8 +502,8 @@ int main(int argc,char** argv)
 
             // 发布里程计
             nav_msgs::Odometry laserOdometry;
-            laserOdometry.header.frame_id = "/map";
-            laserOdometry.child_frame_id = "/laser_odom";
+            laserOdometry.header.frame_id = "map";
+            laserOdometry.child_frame_id = "laser_odom";
             laserOdometry.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
             // 旋转
             laserOdometry.pose.pose.orientation.x = q_w_curr.x();
@@ -516,7 +521,7 @@ int main(int argc,char** argv)
             laserPose.pose = laserOdometry.pose.pose;
             laserPath.header.stamp = laserOdometry.header.stamp;
             laserPath.poses.push_back(laserPose);
-            laserPath.header.frame_id = "/map";
+            laserPath.header.frame_id = "map";
             pubLaserPath.publish(laserPath);
 
 
@@ -541,6 +546,7 @@ int main(int argc,char** argv)
                 }
             }
             // 记录当前角点 面点的tmpPointCloud
+            //std::cout << "create kdtree 0 " << std::endl;
             pcl::PointCloud<PointType>::Ptr laserCloudTemp = cornerPointsLessSharp;
             cornerPointsLessSharp = laserCloudCornerLast;
             laserCloudCornerLast = laserCloudTemp;
@@ -552,11 +558,14 @@ int main(int argc,char** argv)
             // 记录下点的大小
             laserCloudCornerLastNum = laserCloudCornerLast->points.size();
             laserCloudSurfLastNum = laserCloudSurfLast->points.size();
-
+            //std::cout << "create kdtree 1 " << std::endl;
             // std::cout << "the size of corner last is " << laserCloudCornerLastNum << ", and the size of surf last is " << laserCloudSurfLastNum << '\n';
             // 记录下上一帧的kdtree
+            
             kdtreeCornerLast->setInputCloud(laserCloudCornerLast);// 更新kdtree的点云 
+            //std::cout << "create kdtree 2 " << std::endl;
             kdtreeSurfLast->setInputCloud(laserCloudSurfLast);
+            //std::cout << "create kdtree 3 " << std::endl;
 
             if (frameCount % skipFrameNum == 0)
             {
@@ -565,19 +574,19 @@ int main(int argc,char** argv)
                 sensor_msgs::PointCloud2 laserCloudCornerLast2;
                 pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
                 laserCloudCornerLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudCornerLast2.header.frame_id = "/map";
+                laserCloudCornerLast2.header.frame_id = "map";
                 //pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
                 sensor_msgs::PointCloud2 laserCloudSurfLast2;
                 pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
                 laserCloudSurfLast2.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudSurfLast2.header.frame_id = "/map";
+                laserCloudSurfLast2.header.frame_id = "map";
                 //pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
 
                 sensor_msgs::PointCloud2 laserCloudFullRes3;
                 pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
                 laserCloudFullRes3.header.stamp = ros::Time().fromSec(timeSurfPointsLessFlat);
-                laserCloudFullRes3.header.frame_id = "/map";
+                laserCloudFullRes3.header.frame_id = "map";
                 //pubLaserCloudFullRes.publish(laserCloudFullRes3);
             }
             printf("publication time %f ms \n", t_pub.toc());
